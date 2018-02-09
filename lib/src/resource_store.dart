@@ -2,7 +2,7 @@ part of hammock;
 
 @Injectable()
 class ResourceStore {
-  final Http http;
+  final HttpShim http;
   final HammockConfig config;
   final List<Resource> scopingResources;
 
@@ -61,6 +61,7 @@ class ResourceStore {
 
   _invoke(String method, String url, {String data, Map params}) {
     final d = config.requestDefaults;
+
     return http.call(
         method: method,
         url: url,

@@ -1,6 +1,6 @@
 part of hammock;
 
-class HammockUrlRewriter implements UrlRewriter {
+class HammockUrlRewriter /*implements UrlRewriter ABC*/ {
   String baseUrl = "";
   String suffix = "";
   String call(String url) => "$baseUrl$url$suffix";

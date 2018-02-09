@@ -2,11 +2,12 @@ part of hammock;
 
 @Injectable()
 class ResourceStore {
-  final Http http;
+  final Client http;
   final HammockConfig config;
   final List<Resource> scopingResources;
+  HttpDefaultHeaders defaultHeader;
 
-  ResourceStore(this.http, this.config)
+  ResourceStore(this.http, this.config, this.defaultHeader)
       : scopingResources = [];
 
   ResourceStore.copy(ResourceStore original)
@@ -28,10 +29,10 @@ class ResourceStore {
   }
 
   Future<Resource> customQueryOne(resourceType, CustomRequestParams params) =>
-      params.invoke(http).then(_parseResource(resourceType));
+      params.invoke(callHttp).then(_parseResource(resourceType));
 
   Future<QueryResult<Resource>> customQueryList(resourceType, CustomRequestParams params)  =>
-      params.invoke(http).then(_parseManyResources(resourceType));
+      params.invoke(callHttp).then(_parseManyResources(resourceType));
 
 
   Future<CommandResponse> create(Resource resource) {
@@ -56,12 +57,12 @@ class ResourceStore {
 
   Future<CommandResponse> customCommand(Resource resource, CustomRequestParams params) {
     final p = _parseCommandResponse(resource);
-    return params.invoke(http).then(p, onError: _error(p));
+    return params.invoke(this.callHttp).then(p, onError: _error(p));
   }
 
   _invoke(String method, String url, {String data, Map params}) {
     final d = config.requestDefaults;
-    return http.call(
+    return callHttp(
         method: method,
         url: url,
         data: data,
@@ -83,9 +84,9 @@ class ResourceStore {
     return params;
   }
 
-  _parseResource(resourceType) => (resp) => _docFormat.documentToResource(resourceType, resp.data);
-  _parseManyResources(resourceType) => (resp) => _docFormat.documentToManyResources(resourceType, resp.data);
-  _parseCommandResponse(res) => (resp) => _docFormat.documentToCommandResponse(res, resp.data);
+  _parseResource(resourceType) => (resp) => _docFormat.documentToResource(resourceType, resp.body);
+  _parseManyResources(resourceType) => (resp) => _docFormat.documentToManyResources(resourceType, resp.body);
+  _parseCommandResponse(res) => (resp) => _docFormat.documentToCommandResponse(res, resp.body);
   _error(Function func) => (resp) => new Future.error(func(resp));
 
   get _docFormat => config.documentFormat;
@@ -95,5 +96,38 @@ class ResourceStore {
     final currentFragment = "/${config.route(type)}";
     final idFragment = (id != _u) ? "/$id" :  "";
     return config.urlRewriter("$parentFragment$currentFragment$idFragment");
+  }
+
+  Future<Response> callHttp({
+    String url,
+    String method,
+    dynamic data,
+    Map<String, dynamic> params = const {},
+    Map<String, dynamic> headers = const {},
+    bool withCredentials: false,
+    String xsrfHeaderName,
+    String xsrfCookieName,
+    interceptors,
+    cache,
+    timeout
+  }) {
+    var h = {};
+    h.addAll(defaultHeader.map);
+    if (headers != null) {
+      h.addAll(headers);
+    }
+
+    switch (method.toUpperCase()) {
+      case 'GET':
+        return http.get(url, headers: h);
+      case 'POST':
+        return http.post(url, headers: h, body: data, encoding: Encoding.getByName('utf-8'));
+      case 'PUT':
+        return http.put(url, headers: h, body: data, encoding: Encoding.getByName('utf-8'));
+      case 'DELETE':
+        return http.delete(url, headers: h);
+      default:
+        throw new Exception("invalid method");
+    }
   }
 }

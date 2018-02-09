@@ -30,9 +30,9 @@ class QueryResult<T> extends Object with ListMixin<T>  {
   operator[]=(index,value) => list[index] = value;
   set length(value) => list.length = value;
 
-  QueryResult map(Function fn) => new QueryResult(list.map(fn).toList(), meta);
+  QueryResult<E> map<E>(E fn(T element)) => new QueryResult(list.map(fn).toList(), meta);
 
-  QueryResult toList({ bool growable: true }) => this;
+  QueryResult<T> toList({ bool growable: true }) => this;
 }
 
 abstract class DocumentFormat {

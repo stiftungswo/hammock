@@ -4,3 +4,5 @@ TODO.txt
 node_modules
 pubspec.lock
 notes
+.pub
+.packages

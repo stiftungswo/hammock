@@ -111,23 +111,17 @@ class ResourceStore {
     cache,
     timeout
   }) {
-    var h = {};
-    h.addAll(defaultHeader.map);
+    Request req = new Request(method.toUpperCase(), Uri.parse(url));
+    req.headers.addAll(defaultHeader.map);
     if (headers != null) {
-      h.addAll(headers);
+      req.headers.addAll(headers);
     }
 
-    switch (method.toUpperCase()) {
-      case 'GET':
-        return http.get(url, headers: h);
-      case 'POST':
-        return http.post(url, headers: h, body: data, encoding: Encoding.getByName('utf-8'));
-      case 'PUT':
-        return http.put(url, headers: h, body: data, encoding: Encoding.getByName('utf-8'));
-      case 'DELETE':
-        return http.delete(url, headers: h);
-      default:
-        throw new Exception("invalid method");
+    if (data != null) {
+      req.headers['content-type'] = 'application/json';
+      req.body = data;
     }
+
+    return http.send(req).then((stream) => Response.fromStream(stream));
   }
 }

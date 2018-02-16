@@ -111,7 +111,16 @@ class ResourceStore {
     cache,
     timeout
   }) {
-    Request req = new Request(method.toUpperCase(), Uri.parse(url));
+    Uri uri = Uri.parse(url);
+
+    params = (params ?? {});
+    params = new Map.fromIterables(params.keys, params.values.map((value) => value.toString()));
+    params.addAll(uri.queryParameters);
+
+    Uri newUri = new Uri(scheme: uri.scheme, userInfo: uri.userInfo, host: uri.host,port: uri.port, path: uri.path, queryParameters: params,fragment: uri.fragment);
+
+
+    Request req = new Request(method.toUpperCase(), newUri);
     req.headers.addAll(defaultHeader.map);
     if (headers != null) {
       req.headers.addAll(headers);

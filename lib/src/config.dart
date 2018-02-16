@@ -8,7 +8,7 @@ class HammockUrlRewriter /*implements UrlRewriter */ {
 
 @Injectable()
 class HammockConfig {
-  Map config = {};
+  Map<String, dynamic> config = {};
   DocumentFormat documentFormat = new SimpleDocumentFormat();
   final RequestDefaults requestDefaults = new RequestDefaults();
   dynamic urlRewriter = new HammockUrlRewriter();
@@ -16,7 +16,7 @@ class HammockConfig {
   final Injector injector;
   HammockConfig(this.injector);
 
-  void set(Map config){
+  void set(Map<String, dynamic> config){
     this.config = config;
   }
 
@@ -37,7 +37,7 @@ class HammockConfig {
   _value(List path, [ifAbsent=_null]) {
     path = path.where((_) => _ != null).toList();
 
-    var current = config;
+    dynamic current = config;
     for(var i = 0; i < path.length; ++i) {
       if( current is! Map ) break;
       if (current.containsKey(path[i])) {

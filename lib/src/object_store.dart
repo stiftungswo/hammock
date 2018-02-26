@@ -74,7 +74,7 @@ class ObjectStore {
     } else if (d is CommandDeserializer) {
       return (resp) => d(object, resp);
     } else {
-      return (resp) => d(resource(res.type, res.id, resp.content));
+      return (resp) => d(resource(res.type, res.id, (resp.content is Map) ? resp.content : null));
     }
   }
 

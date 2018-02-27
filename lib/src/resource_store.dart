@@ -114,7 +114,9 @@ class ResourceStore {
     Uri uri = Uri.parse(url);
 
     params = (params ?? {});
-    params = new Map.fromIterables(params.keys, params.values.map((value) => value.toString()));
+    var paramKeys = params.keys.where((key) => params[key] != null);
+    var paramValues = params.values.where((value) => value != null).map((value) => value.toString());
+    params = new Map.fromIterables(paramKeys, paramValues);
     params.addAll(uri.queryParameters);
 
     Uri newUri = new Uri(scheme: uri.scheme, userInfo: uri.userInfo, host: uri.host,port: uri.port, path: uri.path, queryParameters: params,fragment: uri.fragment);

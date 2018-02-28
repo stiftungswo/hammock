@@ -22,14 +22,18 @@ class Hammock {
     return [
       //provide(HammockConfig),
       provide(HttpDefaultHeaders, useFactory: getHttpDefaultHeaders, deps: const []),
-      provide(ResourceStore, useFactory: getResourceStore, deps: const [Injector, HammockConfig, HttpDefaultHeaders]),
+      provide(ResourceStore, useFactory: getResourceStore, deps: const [Client, HammockConfig, HttpDefaultHeaders]),
       provide(ObjectStore, useFactory: getObjectStore, deps: const [ResourceStore, HammockConfig]),
-      provide(Client, useClass: BrowserClient),
+      provide(Client, useFactory: getBrowserClient),
     ];
   }
 
-  static getResourceStore(Injector i, HammockConfig config, HttpDefaultHeaders h) {
-    return new ResourceStore(new BrowserClient(), config, h);
+  static getBrowserClient() {
+    return new BrowserClient()..withCredentials = true;
+  }
+
+  static getResourceStore(Client client, HammockConfig config, HttpDefaultHeaders h) {
+    return new ResourceStore(client, config, h);
   }
 
   static getObjectStore(ResourceStore resourceStore, HammockConfig config) {

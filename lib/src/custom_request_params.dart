@@ -3,7 +3,7 @@ part of hammock;
 class CustomRequestParams {
   final String url;
   final String method;
-  final data;
+  final String data;
   final Map<String, dynamic> params;
   final Map<String, dynamic> headers;
   final bool withCredentials;

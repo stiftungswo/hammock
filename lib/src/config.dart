@@ -20,13 +20,13 @@ class HammockConfig {
     this.config = config;
   }
 
-  String route(resourceType) =>
+  String route(String resourceType) =>
       _value([resourceType, 'route'], () => resourceType);
 
-  deserializer(resourceType, [List path=const[]]) =>
+  deserializer(String resourceType, [List<String> path=const[]]) =>
       _load(_value([resourceType, 'deserializer']..addAll(path)));
 
-  serializer(resourceType) =>
+  serializer(String resourceType) =>
       _load(_value([resourceType, 'serializer'], () => throw "No serializer for `${resourceType}`"));
 
   resourceType(objectType) =>
@@ -34,7 +34,7 @@ class HammockConfig {
         (e) => _value([e, "type"]) == objectType,
         orElse: () => throw "No resource type found for $objectType");
 
-  _value(List path, [ifAbsent=_null]) {
+  _value(List<String> path, [dynamic ifAbsent()=_null]) {
     path = path.where((_) => _ != null).toList();
 
     dynamic current = config;

@@ -1,6 +1,5 @@
 library hammock;
 
-import 'dart:convert';
 import 'package:angular/angular.dart';
 import 'dart:async';
 import 'package:http/browser_client.dart';

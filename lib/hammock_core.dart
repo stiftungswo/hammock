@@ -4,13 +4,14 @@ import 'dart:convert';
 import 'dart:collection';
 
 class Resource {
-  final Object type, id;
-  final Map content;
+  final String type;
+  final Object id;
+  final Map<String, dynamic> content;
 
   Resource(this.type, this.id, this.content);
 }
 
-Resource resource(type, id, [content]) => new Resource(type, id, content);
+Resource resource(String type, Object id, [Map<String, dynamic> content]) => new Resource(type, id, content);
 
 class CommandResponse {
   final Resource resource;
@@ -37,15 +38,15 @@ class QueryResult<T> extends Object with ListMixin<T>  {
 
 abstract class DocumentFormat {
   String resourceToDocument(Resource res);
-  Resource documentToResource(resourceType, document);
-  QueryResult documentToManyResources(resourceType, document);
-  CommandResponse documentToCommandResponse(Resource res, document);
+  Resource documentToResource(String resourceType, String document);
+  QueryResult<Resource> documentToManyResources(String resourceType, String document);
+  CommandResponse documentToCommandResponse(Resource res, String document);
 }
 
 abstract class JsonDocumentFormat implements DocumentFormat {
-  resourceToJson(Resource resource);
-  Resource jsonToResource(resourceType, json);
-  QueryResult<Resource> jsonToManyResources(resourceType, json);
+  Map<String, dynamic> resourceToJson(Resource resource);
+  Resource jsonToResource(String resourceType, Map<String, dynamic> json);
+  QueryResult<Resource> jsonToManyResources(String resourceType, json);
 
   final JsonEncoder _encoder = new JsonEncoder();
   final JsonDecoder _decoder = new JsonDecoder();
@@ -53,32 +54,32 @@ abstract class JsonDocumentFormat implements DocumentFormat {
   String resourceToDocument(Resource res) =>
       _encoder.convert(resourceToJson(res));
 
-  Resource documentToResource(resourceType, document) =>
+  Resource documentToResource(String resourceType, String document) =>
       jsonToResource(resourceType, _toJSON(document));
 
-  QueryResult<Resource> documentToManyResources(resourceType, document) =>
+  QueryResult<Resource> documentToManyResources(String resourceType, String document) =>
       jsonToManyResources(resourceType, _toJSON(document));
 
-  CommandResponse documentToCommandResponse(Resource res, document) =>
+  CommandResponse documentToCommandResponse(Resource res, String document) =>
       new CommandResponse(res, _toJSON(document));
 
   _toJSON(document) {
     try {
       return (document is String) ? _decoder.convert(document) : document;
-    } on FormatException catch(e) {
+    } on FormatException catch(_) {
       return document;
     }
   }
 }
 
 class SimpleDocumentFormat extends JsonDocumentFormat {
-  resourceToJson(Resource res) =>
+  Map<String, dynamic> resourceToJson(Resource res) =>
       res.content;
 
-  Resource jsonToResource(type, json) =>
+  Resource jsonToResource(String type, Map<String, dynamic> json) =>
       resource(type, json["id"], json);
 
-  QueryResult<Resource> jsonToManyResources(type, json) {
+  QueryResult<Resource> jsonToManyResources(String type, json) {
     if(json is Map){
       json = json.values.toList();
     } 

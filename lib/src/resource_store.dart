@@ -16,23 +16,23 @@ class ResourceStore {
         this.config = original.config,
         this.defaultHeader = original.defaultHeader;
 
-  ResourceStore scope(scopingResource) => new ResourceStore.copy(this)..scopingResources.add(scopingResource);
+  ResourceStore scope(Resource scopingResource) => new ResourceStore.copy(this)..scopingResources.add(scopingResource);
 
 
-  Future<Resource> one(resourceType, resourceId) {
+  Future<Resource> one(String resourceType, dynamic resourceId) {
     final url = _url(resourceType, resourceId);
     return _invoke("GET", url).then(_parseResource(resourceType));
   }
 
-  Future<QueryResult<Resource>> list(resourceType, {Map params}) {
+  Future<QueryResult<Resource>> list(String resourceType, {Map params}) {
     final url = _url(resourceType);
     return _invoke("GET", url, params: params).then(_parseManyResources((resourceType)));
   }
 
-  Future<Resource> customQueryOne(resourceType, CustomRequestParams params) =>
+  Future<Resource> customQueryOne(String resourceType, CustomRequestParams params) =>
       params.invoke(callHttp).then(_parseResource(resourceType));
 
-  Future<QueryResult<Resource>> customQueryList(resourceType, CustomRequestParams params)  =>
+  Future<QueryResult<Resource>> customQueryList(String resourceType, CustomRequestParams params)  =>
       params.invoke(callHttp).then(_parseManyResources(resourceType));
 
 
@@ -61,7 +61,7 @@ class ResourceStore {
     return params.invoke(this.callHttp).then(p, onError: _error(p));
   }
 
-  _invoke(String method, String url, {String data, Map params}) {
+  Future<Response> _invoke(String method, String url, {String data, Map params}) {
     final d = config.requestDefaults;
     return callHttp(
         method: method,
@@ -78,21 +78,21 @@ class ResourceStore {
     );
   }
 
-  _paramsWithDefaults(Map rParams) {
+  Map _paramsWithDefaults(Map rParams) {
     if (config.requestDefaults.params == null && rParams == null) return null;
     final params = config.requestDefaults.params == null ? {} : config.requestDefaults.params;
     if (rParams != null) rParams.forEach((key, value) => params[key] = value);
     return params;
   }
 
-  _parseResource(resourceType) => (resp) => _docFormat.documentToResource(resourceType, resp.body);
-  _parseManyResources(resourceType) => (resp) => _docFormat.documentToManyResources(resourceType, resp.body);
-  _parseCommandResponse(res) => (resp) => _docFormat.documentToCommandResponse(res, resp.body);
-  _error(Function func) => (resp) => new Future.error(func(resp));
+  _parseResource(String resourceType) => (Response resp) => _docFormat.documentToResource(resourceType, resp.body);
+  _parseManyResources(String resourceType) => (Response resp) => _docFormat.documentToManyResources(resourceType, resp.body);
+  _parseCommandResponse(Resource res) => (Response resp) => _docFormat.documentToCommandResponse(res, resp.body);
+  _error(dynamic func(Response)) => (Response resp) => new Future.error(func(resp));
 
   DocumentFormat get _docFormat => config.documentFormat;
 
-  _url(type, [id=_u]) {
+  String _url(String type, [dynamic id=_u]) {
     final parentFragment = scopingResources.map((r) => "/${config.route(r.type)}/${r.id}").join("");
     final currentFragment = "/${config.route(type)}";
     final idFragment = (id != _u) ? "/$id" :  "";
@@ -102,7 +102,7 @@ class ResourceStore {
   Future<Response> callHttp({
     String url,
     String method,
-    dynamic data,
+    String data,
     Map<String, dynamic> params = const {},
     Map<String, dynamic> headers = const {},
     bool withCredentials: false,

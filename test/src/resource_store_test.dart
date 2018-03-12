@@ -1,7 +1,7 @@
 part of hammock_test;
 
 testResourceStore() {
-  describe("ResourceStore", () {
+  group("ResourceStore", () {
     //setUpAngular();
 
     ResourceStore store;
@@ -9,63 +9,63 @@ testResourceStore() {
     MockClient http;
     HttpDefaultHeaders defaultHeaders;
 
-    beforeEach(() {
+    setUp(() {
       http = new MockClient();
       config = new HammockConfig(null);
       defaultHeaders = new HttpDefaultHeaders();
       store = new ResourceStore(http.client, config, defaultHeaders);
     });
 
-    describe("Queries", () {
-      it("returns a resource", () {
+    group("Queries", () {
+      test("returns a resource", () {
         http.router.get("/posts/123", (_,__) => {"id": 123, "title": "SampleTitle"});
 
         return store.one("posts", 123).then((resource) {
-          expect(resource.id).toEqual(123);
-          expect(resource.content["title"]).toEqual("SampleTitle");
+          expect(resource.id, equals(123));
+          expect(resource.content["title"], equals("SampleTitle"));
         });
       });
 
-      it("returns multiple resources", () {
+      test("returns multiple resources", () {
         http.router.get("/posts", (_,__) => [{"id": 123, "title" : "SampleTitle"}]);
 
         return store.list("posts").then((resources) {
-          expect(resources.length).toEqual(1);
-          expect(resources[0].content["title"]).toEqual("SampleTitle");
+          expect(resources.length, equals(1));
+          expect(resources[0].content["title"], equals("SampleTitle"));
         });
       });
 
-      it("returns a nested resource", () {
+      test("returns a nested resource", () {
         http.router.get("/posts/123/comments/456", (_,__) => {"id": 456, "text" : "SampleComment"});
 
         final post = resource("posts", 123);
         return store.scope(post).one("comments", 456).then((resource) {
-          expect(resource.id).toEqual(456);
-          expect(resource.content["text"]).toEqual("SampleComment");
+          expect(resource.id, equals(456));
+          expect(resource.content["text"], equals("SampleComment"));
         });
       });
 
-      it("handles errors", () {
+      test("handles errors", () {
         http.router.get("/posts/123", (_,__) => text("BOOM", 500));
 
         return store.one("posts", 123).catchError((resp) {
-          expect(resp.body).toEqual("BOOM");
+          expect(resp.body, equals("BOOM"));
         });
       });
 
-      describe("default params", () {
-        it("uses request defaults", () {
+      group("default params", () {
+        test("uses request defaults", () {
           config.requestDefaults.withCredentials = true;
           // todo with credentials?
 
           http.router.get("/posts/123", (_,__) => {"id" : 123});
 
           return store.one("posts", 123).then((resource) {
-            expect(resource.id).toEqual(123);
+            expect(resource.id, equals(123));
           });
         });
 
-        it("should merge params", () {
+        test("should merge params", () {
           config.requestDefaults.params = {"defaultParam" : "dvalue"};
 
           http.router.get("/posts", (Request request, _) {
@@ -74,36 +74,36 @@ testResourceStore() {
           });
 
           return store.list("posts", params: {"requestParam" : "rvalue"}).then((resource) {
-            expect(resource.length).toBe(1);
-            expect(resource[0].content['defaultParam']).toEqual('dvalue');
-            expect(resource[0].content['requestParam']).toEqual('rvalue');
+            expect(resource.length, equals(1));
+            expect(resource[0].content['defaultParam'], equals('dvalue'));
+            expect(resource[0].content['requestParam'], equals('rvalue'));
           });
         });
       });
 
-      describe("custom queries", () {
-        it("returns one resource", () {
+      group("custom queries", () {
+        test("returns one resource", () {
           http.router.get("/posts/123", (_,__) => {"id": 123, "title" : "SampleTitle"});
 
           return store.customQueryOne("posts", new CustomRequestParams(method: "GET", url:"/posts/123")).then((resource) {
-            expect(resource.content["title"]).toEqual("SampleTitle");
+            expect(resource.content["title"], equals("SampleTitle"));
           });
         });
 
-        it("returns many resource", () {
+        test("returns many resource", () {
           http.router.get("/posts", (_,__) => [{"id": 123, "title" : "SampleTitle"}]);
 
           return store.customQueryList("posts", new CustomRequestParams(method: "GET", url: "/posts")).then((resources) {
-            expect(resources.length).toEqual(1);
-            expect(resources[0].content["title"]).toEqual("SampleTitle");
+            expect(resources.length, equals(1));
+            expect(resources[0].content["title"], equals("SampleTitle"));
           });
         });
       });
     });
 
 
-    describe("Commands", () {
-      it("create a resource", () {
+    group("Commands", () {
+      test("create a resource", () {
         var reqBody;
         http.router.post('/posts', (Request request,_) {
           reqBody = request.body;
@@ -113,13 +113,13 @@ testResourceStore() {
         final post = resource("posts", null, {"title": "New"});
 
         return store.create(post).then((resp) {
-          expect(reqBody).toEqual('{"title":"New"}');
-          expect(resp.content["id"]).toEqual(123);
-          expect(resp.content["title"]).toEqual("New");
+          expect(reqBody, equals('{"title":"New"}'));
+          expect(resp.content["id"], equals(123));
+          expect(resp.content["title"], equals("New"));
         });
       });
 
-      it("updates a resource", () {
+      test("updates a resource", () {
         var reqBody;
         http.router.put('/posts/123', (Request request,_) {
           reqBody = request.body;
@@ -129,13 +129,13 @@ testResourceStore() {
         final post = resource("posts", 123, {"id": 123, "title": "New"});
 
         return store.update(post).then((resp) {
-          expect(reqBody).toEqual('{"id":123,"title":"New"}');
-          expect(resp.content["id"]).toEqual(123);
-          expect(resp.content["title"]).toEqual("Newer");
+          expect(reqBody, equals('{"id":123,"title":"New"}'));
+          expect(resp.content["id"], equals(123));
+          expect(resp.content["title"], equals("Newer"));
         });
       });
 
-      it("updates a nested resource", () {
+      test("updates a nested resource", () {
         var reqBody;
         http.router.put('/posts/123/comments/456', (Request request,_) {
           reqBody = request.body;
@@ -146,63 +146,63 @@ testResourceStore() {
         final comment = resource("comments", 456, {"id": 456, "text" : "New"});
 
         return store.scope(post).update(comment).then((response) {
-          expect(reqBody).toEqual('{"id":456,"text":"New"}');
+          expect(reqBody, equals('{"id":456,"text":"New"}'));
         });
       });
 
-      it("deletes a resource", () {
+      test("deletes a resource", () {
         http.router.delete("/posts/123", (_,__) => text('OK'));
 
         final post = resource("posts", 123);
 
         return store.delete(post).then((resp) {
-          expect(resp.content).toEqual("OK");
+          expect(resp.content, equals("OK"));
         });
       });
 
-      it("handles errors", () {
+      test("handles errors", () {
         http.router.delete("/posts/123", (_,__) => text('BOOM', 500));
 
         final post = resource("posts", 123);
 
         return store.delete(post).catchError((resp) {
-          expect(resp.content).toEqual("BOOM");
+          expect(resp.content, equals("BOOM"));
         });
       });
 
-      it("supports custom commands", () {
+      test("supports custom commands", () {
         http.router.delete("/posts/123", (_,__) => text('OK'));
 
         final post = resource("posts", 123);
 
         return store.customCommand(post, new CustomRequestParams(method: 'DELETE', url: '/posts/123')).then((resp) {
-          expect(resp.content).toEqual("OK");
+          expect(resp.content, equals("OK"));
         });
       });
     });
 
 
-    describe("Custom Configuration", () {
-      it("uses route", () {
+    group("Custom Configuration", () {
+      test("uses route", () {
         config.set({
-            "posts" : {"route": 'custom'}
+          "posts" : {"route": 'custom'}
         });
 
         http.router.get("/custom/123", (_,__) => text('{}'));
 
         return store.one("posts", 123).then((response) {
-          expect(response.content).toEqual({});
+          expect(response.content, equals({}));
         });
       });
 
-      it("uses urlRewriter", () async  {
+      test("uses urlRewriter", () async  {
         config.urlRewriter.baseUrl = "/base";
         config.urlRewriter.suffix = ".json";
 
         http.router.get("/base/posts/123.json", (_,__) => text('{}'));
 
         await store.one("posts", 123).then((response) {
-          expect(response.content).toEqual({});
+          expect(response.content, equals({}));
         });
 
         config.urlRewriter = (url) => "$url.custom";
@@ -211,7 +211,7 @@ testResourceStore() {
         http.router.get("/posts/123.custom", (_,__) => text('{}'));
 
         return store.one("posts", 123).then((response) {
-          expect(response.content).toEqual({});
+          expect(response.content, equals({}));
         });
       });
     });

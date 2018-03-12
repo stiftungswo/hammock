@@ -1,7 +1,7 @@
 part of hammock_test;
 
 testObjectStore() {
-  describe("ObjectStore", () {
+  group("ObjectStore", () {
     //setUpAngular();
 
     ObjectStore store;
@@ -9,7 +9,7 @@ testObjectStore() {
     MockClient http;
     HttpDefaultHeaders defaultHeaders;
 
-    beforeEach(() {
+    setUp(() {
       http = new MockClient();
       config = new HammockConfig(null);
       defaultHeaders = new HttpDefaultHeaders();
@@ -17,130 +17,130 @@ testObjectStore() {
       store = new ObjectStore(resourceStore, config);
     });
 
-    describe("Queries", () {
-      beforeEach(() {
+    group("Queries", () {
+      setUp(() {
         config.set({
-            "posts" : {
-                "type" : Post,
-                "serializer" : serializePost,
-                "deserializer" : deserializePost
-            },
-            "comments" : {
-                "type": Comment,
-                "deserializer" : deserializeComment
-            }
+          "posts" : {
+            "type" : Post,
+            "serializer" : serializePost,
+            "deserializer" : deserializePost
+          },
+          "comments" : {
+            "type": Comment,
+            "deserializer" : deserializeComment
+          }
         });
       });
 
-      it("returns an object", () {
+      test("returns an object", () {
         http.router.get("/posts/123", (_,__) => {"title" : "SampleTitle"});
 
         return store.one(Post, 123).then((Post post) {
-          expect(post.title).toEqual("SampleTitle");
+          expect(post.title, equals("SampleTitle"));
         });
       });
 
-      it("returns multiple objects", () {
+      test("returns multiple objects", () {
         http.router.get("/posts", (_,__) => [{"title" : "SampleTitle"}]);
 
         return store.list(Post).then((List<Post> posts) {
-          expect(posts.length).toEqual(1);
-          expect(posts[0].title).toEqual("SampleTitle");
+          expect(posts.length, equals(1));
+          expect(posts[0].title, equals("SampleTitle"));
         });
       });
 
-      it("returns a nested object", () {
+      test("returns a nested object", () {
         final post = new Post()..id = 123;
         http.router.get("/posts/123/comments/456", (_,__) => {"text" : "SampleComment"});
 
         return store.scope(post).one(Comment, 456).then((Comment comment) {
-          expect(comment.text).toEqual("SampleComment");
+          expect(comment.text, equals("SampleComment"));
         });
       });
 
-      it("handles errors", () {
+      test("handles errors", () {
         http.router.get("/posts/123", (_,__) => text('BOOM', 500));
 
         return store.one(Post, 123).catchError((resp) {
-          expect(resp.body).toEqual("BOOM");
+          expect(resp.body, equals("BOOM"));
         });
       });
 
-      it("uses a separate deserializer for queries", () {
+      test("uses a separate deserializer for queries", () {
 
         config.set({
-            "posts" : {
-              "type" : Post,
-              "deserializer" : {
-                "query" : deserializePost
-              }
+          "posts" : {
+            "type" : Post,
+            "deserializer" : {
+              "query" : deserializePost
             }
+          }
         });
 
         http.router.get("/posts/123", (_,__) => {"title" : "SampleTitle"});
 
         return store.one(Post, 123).then((Post post) {
-          expect(post.title).toEqual("SampleTitle");
+          expect(post.title, equals("SampleTitle"));
         });
       });
 
-      it("supports deserializers that return Futures", () async  {
+      test("supports deserializers that return Futures", () async  {
 
         config.set({
-            "posts" : {
-              "type" : Post,
-              "deserializer" : (r) => new Future.value(deserializePost(r))
-            }
+          "posts" : {
+            "type" : Post,
+            "deserializer" : (r) => new Future.value(deserializePost(r))
+          }
         });
 
         http.router.get("/posts/123", (_,__) => {"title" : "SampleTitle"});
 
         await store.one(Post, 123).then((Post post) {
-          expect(post.title).toEqual("SampleTitle");
+          expect(post.title, equals("SampleTitle"));
         });
 
         http.router.get("/posts", (_,__) => [{"title" : "SampleTitle"}]);
 
         return store.list(Post).then((List posts) {
-          expect(posts.first.title).toEqual("SampleTitle");
+          expect(posts.first.title, equals("SampleTitle"));
         });
       });
 
-      it("support custom queries returning one object", () {
+      test("support custom queries returning one object", () {
         http.router.get("/posts/123", (_,__) => {"id": 123, "title" : "SampleTitle"});
 
         return store.customQueryOne(Post, new CustomRequestParams(method: "GET", url:"/posts/123")).then((Post post) {
-          expect(post.title).toEqual("SampleTitle");
+          expect(post.title, equals("SampleTitle"));
         });
       });
 
-      it("support custom queries returning many object", () {
+      test("support custom queries returning many object", () {
         http.router.get("/posts", (_,__) => [{"id": 123, "title" : "SampleTitle"}]);
 
         return store.customQueryList(Post, new CustomRequestParams(method: "GET", url: "/posts")).then((List posts) {
-          expect(posts.length).toEqual(1);
-          expect(posts[0].title).toEqual("SampleTitle");
+          expect(posts.length, equals(1));
+          expect(posts[0].title, equals("SampleTitle"));
         });
       });
     });
 
 
-    describe("Commands", () {
-      describe("Without Deserializers", () {
-        beforeEach(() {
+    group("Commands", () {
+      group("Without Deserializers", () {
+        setUp(() {
           config.set({
-              "posts" : {
-                  "type" : Post,
-                  "serializer" : serializePost
-              },
-              "comments" : {
-                  "type" : Comment,
-                  "serializer" : serializeComment
-              }
+            "posts" : {
+              "type" : Post,
+              "serializer" : serializePost
+            },
+            "comments" : {
+              "type" : Comment,
+              "serializer" : serializeComment
+            }
           });
         });
 
-        it("creates an object", () {
+        test("creates an object", () {
           var reqBody;
           http.router.post("/posts", (Request r,__) {
             reqBody = r.body;
@@ -150,12 +150,12 @@ testObjectStore() {
           final post = new Post()..title = "New";
 
           return store.create(post).then((response) {
-            expect(reqBody).toEqual('{"id":null,"title":"New"}');
-            expect(response.content).toEqual({"id":123,"title":"New"});
+            expect(reqBody, equals('{"id":null,"title":"New"}'));
+            expect(response.content, equals({"id":123,"title":"New"}));
           });
         });
 
-        it("updates an object", () {
+        test("updates an object", () {
           var reqBody;
           http.router.put("/posts/123", (Request r,__) {
             reqBody = r.body;
@@ -166,22 +166,22 @@ testObjectStore() {
 
 
           return store.update(post).then((response) {
-            expect(reqBody).toEqual('{"id":123,"title":"New"}');
-            expect(response.content).toEqual({});
+            expect(reqBody, equals('{"id":123,"title":"New"}'));
+            expect(response.content, equals({}));
           });
         });
 
-        it("deletes a object", () {
+        test("deletes a object", () {
           http.router.delete("/posts/123", (_,__) => {});
 
           final post = new Post()..id = 123;
 
           return store.delete(post).then((response) {
-            expect(response.content).toEqual({});
+            expect(response.content, equals({}));
           });
         });
 
-        it("updates a nested object", () {
+        test("updates a nested object", () {
           var reqBody;
           http.router.put("/posts/123/comments/456", (Request r,__) {
             reqBody = r.body;
@@ -192,12 +192,12 @@ testObjectStore() {
           final comment = new Comment()..id = 456..text = "New";
 
           return store.scope(post).update(comment).then((response) {
-            expect(reqBody).toEqual('{"id":456,"text":"New"}');
-            expect(response.content).toEqual({});
+            expect(reqBody, equals('{"id":456,"text":"New"}'));
+            expect(response.content, equals({}));
           });
         });
 
-        it("handles errors", () {
+        test("handles errors", () {
           var reqBody;
           http.router.post("/posts", (Request r,__) {
             reqBody = r.body;
@@ -207,116 +207,116 @@ testObjectStore() {
           final post = new Post()..title = "New";
 
           return store.create(post).catchError((error) {
-            expect(reqBody).toEqual('{"id":null,"title":"New"}');
-            expect(error.content).toEqual('BOOM');
+            expect(reqBody, equals('{"id":null,"title":"New"}'));
+            expect(error.content, equals('BOOM'));
           });
         });
 
-        it("supports custom commands", () {
+        test("supports custom commands", () {
           http.router.delete("/posts/123", (_,__) => 'OK');
 
           final post = new Post()..id = 123;
 
           return store.customCommand(post, new CustomRequestParams(method: 'DELETE', url: '/posts/123')).then((resp) {
-            expect(resp.content).toEqual("OK");
+            expect(resp.content, equals("OK"));
           });
         });
       });
 
-      describe("With Deserializers", () {
+      group("With Deserializers", () {
         var post;
 
-        beforeEach(() {
+        setUp(() {
           post = new Post()..id = 123..title = "New";
         });
 
-        it("uses the same deserializer for queries and commands", () {
+        test("uses the same deserializer for queries and commands", () {
 
           config.set({
-              "posts" : {
-                  "type" : Post,
-                  "serializer" : serializePost,
-                  "deserializer" : deserializePost
-              }
+            "posts" : {
+              "type" : Post,
+              "serializer" : serializePost,
+              "deserializer" : deserializePost
+            }
           });
 
           http.router.put("/posts/123", (_,__) => {"id": 123, "title": "Newer"});
 
           return store.update(post).then((Post returnedPost) {
-            expect(returnedPost.id).toEqual(123);
-            expect(returnedPost.title).toEqual("Newer");
+            expect(returnedPost.id, equals(123));
+            expect(returnedPost.title, equals("Newer"));
           });
         });
 
-        it("uses a separate serializer for commands", () {
+        test("uses a separate serializer for commands", () {
 
           config.set({
-              "posts" : {
-                  "type" : Post,
-                  "serializer" : serializePost,
-                  "deserializer" : {
-                    "command" : updatePost
-                  }
+            "posts" : {
+              "type" : Post,
+              "serializer" : serializePost,
+              "deserializer" : {
+                "command" : updatePost
               }
+            }
           });
 
 
           http.router.put("/posts/123", (_,__) => {"title": "Newer"});
 
           return store.update(post).then((Post returnedPost) {
-            expect(returnedPost.title).toEqual("Newer");
-            expect(post.title).toEqual("Newer");
+            expect(returnedPost.title, equals("Newer"));
+            expect(post.title, equals("Newer"));
           });
         });
 
-        it("uses a separate serializer when a command fails", () {
+        test("uses a separate serializer when a command fails", () {
 
           config.set({
-              "posts" : {
-                  "type" : Post,
-                  "serializer" : serializePost,
-                  "deserializer" : {
-                    "command" : {
-                      "success" : deserializePost,
-                      "error" : parseErrors
-                    }
-                  }
+            "posts" : {
+              "type" : Post,
+              "serializer" : serializePost,
+              "deserializer" : {
+                "command" : {
+                  "success" : deserializePost,
+                  "error" : parseErrors
+                }
               }
+            }
           });
 
           http.router.put("/posts/123", (_,__) => text('BOOM', 500));
 
           return store.update(post).catchError((resp) {
-            expect(resp).toEqual("BOOM");
+            expect(resp, equals("BOOM"));
           });
         });
 
-        it("supports deserializers that return Futures", () async {
+        test("supports deserializers that return Futures", () async {
 
           config.set({
-              "posts" : {
-                  "type" : Post,
-                  "serializer" : serializePost,
-                  "deserializer" : {
-                    "command" : {
-                      "success" : (r) => new Future.value(deserializePost(r)),
-                      "error" : (p,r) => new Future.value(parseErrors(p,r))
-                    }
-                  }
+            "posts" : {
+              "type" : Post,
+              "serializer" : serializePost,
+              "deserializer" : {
+                "command" : {
+                  "success" : (r) => new Future.value(deserializePost(r)),
+                  "error" : (p,r) => new Future.value(parseErrors(p,r))
+                }
               }
+            }
           });
 
           http.router.put("/posts/123", (_,__) => {"title": "Newer"});
 
           await store.update(post).then((Post returnedPost) {
-            expect(returnedPost.title).toEqual("Newer");
+            expect(returnedPost.title, equals("Newer"));
           });
 
           http.clearRoutes();
           http.router.put("/posts/123", (_,__) => text('BOOM', 500));
 
           return store.update(post).catchError((resp) {
-            expect(resp).toEqual("BOOM");
+            expect(resp, equals("BOOM"));
           });
         });
       });

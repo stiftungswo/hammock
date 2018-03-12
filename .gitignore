@@ -6,3 +6,4 @@ pubspec.lock
 notes
 .pub
 .packages
+.dart_tool

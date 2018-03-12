@@ -2,7 +2,7 @@ library hammock_test;
 
 import 'dart:async';
 
-import 'package:guinness/guinness.dart';
+import 'package:test/test.dart';
 import 'package:hammock/hammock.dart';
 import 'package:http/http.dart';
 

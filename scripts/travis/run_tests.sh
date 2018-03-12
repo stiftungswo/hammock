@@ -50,12 +50,7 @@ fi
 
 
 echo -------------------
-echo Karma-Dart
+echo Dart test
 echo -------------------
 sh -e /etc/init.d/xvfb start
-./node_modules/karma/bin/karma start --single-run --browsers Dartium
-
-echo -------------------
-echo Karma-JS
-echo -------------------
-echo ./node_modules/karma/bin/karma start --single-run --browsers PhantomJS
+pub run test -p dartium test/hammock_test.dart

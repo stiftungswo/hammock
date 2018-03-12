@@ -15,7 +15,7 @@ testIntegration() {
   MockClient http;
   HttpDefaultHeaders defaultHeaders;
 
-  beforeEach(() {
+  setUp(() {
     http = new MockClient();
     config = new HammockConfig(null);
     defaultHeaders = new HttpDefaultHeaders();
@@ -29,83 +29,83 @@ testIntegration() {
     ..errors = r.content["errors"];
 
   serializePost(post) =>
-    resource("posts", post.id, {"id" : post.id, "title" : post.title});
+      resource("posts", post.id, {"id" : post.id, "title" : post.title});
 
 
 
-  describe("Custom Document Formats", () {
-    it("can support jsonapi.org format", () async {
+  group("Custom Document Formats", () {
+    test("can support jsonapi.org format", () async {
       config.documentFormat = new JsonApiOrgFormat();
 
       http.router.get("/posts/123", (_,__) => {"posts" : [{"id" : 123, "title" : "title"}]});
       await resourceStore.one("posts", 123).then((post) {
-        expect(post.content["title"]).toEqual("title");
+        expect(post.content["title"], equals("title"));
       });
 
       http.router.put("/posts/123", (_,__) => {"posts":[{"id":123,"title":"new"}]});
       return resourceStore.update(resource("posts", 123, {"id" : 123, "title" : "new"})).then((response) {
-        expect(response.content["posts"][0]["id"]).toBe(123);
+        expect(response.content["posts"][0]["id"], equals(123));
       });
     });
   });
 
-  describe("Different Types of Responses", () {
+  group("Different Types of Responses", () {
     final post = new IntegrationPost()..id = 123..title = "new";
 
-    it("works when when a server returns an updated resource", () async {
+    test("works when when a server returns an updated resource", () async {
 
-        config.set({
-            "posts" : {
-                "type" : IntegrationPost,
-                "serializer" : serializePost,
-                "deserializer" : deserializePost
-            }
-        });
+      config.set({
+        "posts" : {
+          "type" : IntegrationPost,
+          "serializer" : serializePost,
+          "deserializer" : deserializePost
+        }
+      });
 
-        http.router.put("/posts/123", (_,__) => {"id" : 123, "title" : "updated"});
+      http.router.put("/posts/123", (_,__) => {"id" : 123, "title" : "updated"});
 
 
-        await objectStore.update(post).then((up) {
-          expect(up.title).toEqual("updated");
-        });
+      await objectStore.update(post).then((up) {
+        expect(up.title, equals("updated"));
+      });
 
-        http.clearRoutes();
-        http.router.put("/posts/123", (_,__) => json({"id" : 123, "title" : "updated", "errors" : "some errors"}, 422));
+      http.clearRoutes();
+      http.router.put("/posts/123", (_,__) => json({"id" : 123, "title" : "updated", "errors" : "some errors"}, 422));
 
-        return objectStore.update(post).catchError((up) {
-          expect(up.title).toEqual("updated");
-          expect(up.errors).toEqual("some errors");
-        });
+      return objectStore.update(post).catchError((up) {
+        expect(up.title, equals("updated"));
+        expect(up.errors, equals("some errors"));
+      });
     });
 
-    it("works when a server returns a status", () async {
+    test("works when a server returns a status", () async {
 
-        config.set({
-            "posts" : {
-                "type" : IntegrationPost,
-                "serializer" : serializePost,
-                "deserializer" : {
-                  "command" : {
-                    "success" : (obj, r) => true,
-                    "error" : (obj, r) => r.content["errors"]
-                  }
-                }
+      config.set({
+        "posts" : {
+          "type" : IntegrationPost,
+          "serializer" : serializePost,
+          "deserializer" : {
+            "command" : {
+              "success" : (obj, r) => true,
+              "error" : (obj, r) => r.content["errors"]
             }
-        });
+          }
+        }
+      });
 
 
-        http.router.put("/posts/123", (_,__) => "OK");
+      http.router.put("/posts/123", (_,__) => "OK");
 
-        await objectStore.update(post).then((res) {
-          expect(res).toBeTrue();
-        });
+      await objectStore.update(post).then((res) {
+        expect(res, isTrue);
+      });
 
-        http.clearRoutes();
-        http.router.put("/posts/123", (_,__) => json({"errors" : "some errors"}, 422));
+      http.clearRoutes();
+      http.router.put("/posts/123", (_,__) => json({"errors" : "some errors"}, 422));
 
-        return objectStore.update(post).catchError((errors) {
-          expect(errors).toEqual("some errors");
-        });
+      return objectStore.update(post).catchError((errors) {
+        expect(errors, equals("some errors"));
+      });
     });
   });
 }

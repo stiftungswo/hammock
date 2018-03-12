@@ -47,8 +47,8 @@ abstract class JsonDocumentFormat implements DocumentFormat {
   Resource jsonToResource(resourceType, json);
   QueryResult<Resource> jsonToManyResources(resourceType, json);
 
-  final _encoder = new JsonEncoder();
-  final _decoder = new JsonDecoder();
+  final JsonEncoder _encoder = new JsonEncoder();
+  final JsonDecoder _decoder = new JsonDecoder();
 
   String resourceToDocument(Resource res) =>
       _encoder.convert(resourceToJson(res));

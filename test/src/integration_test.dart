@@ -7,7 +7,21 @@ class IntegrationPost {
 }
 
 testIntegration() {
-  setUpAngular();
+  //setUpAngular();
+
+  ResourceStore resourceStore;
+  ObjectStore objectStore;
+  HammockConfig config;
+  MockClient http;
+  HttpDefaultHeaders defaultHeaders;
+
+  beforeEach(() {
+    http = new MockClient();
+    config = new HammockConfig(null);
+    defaultHeaders = new HttpDefaultHeaders();
+    resourceStore = new ResourceStore(http.client, config, defaultHeaders);
+    objectStore = new ObjectStore(resourceStore, config);
+  });
 
   deserializePost(r) => new IntegrationPost()
     ..id = r.id
@@ -20,24 +34,25 @@ testIntegration() {
 
 
   describe("Custom Document Formats", () {
-    it("can support jsonapi.org format", (HammockConfig config, MockHttpBackend hb, ResourceStore s){
+    it("can support jsonapi.org format", () async {
       config.documentFormat = new JsonApiOrgFormat();
 
-      hb.whenGET("/posts/123").respond({"posts" : [{"id" : 123, "title" : "title"}]});
-      wait(s.one("posts", 123), (post) {
+      http.router.get("/posts/123", (_,__) => {"posts" : [{"id" : 123, "title" : "title"}]});
+      await resourceStore.one("posts", 123).then((post) {
         expect(post.content["title"]).toEqual("title");
       });
 
-      hb.whenPUT("/posts/123").respond({"posts":[{"id":123,"title":"new"}]});
-      wait(s.update(resource("posts", 123, {"id" : 123, "title" : "new"})));
+      http.router.put("/posts/123", (_,__) => {"posts":[{"id":123,"title":"new"}]});
+      return resourceStore.update(resource("posts", 123, {"id" : 123, "title" : "new"})).then((response) {
+        expect(response.content["posts"][0]["id"]).toBe(123);
+      });
     });
   });
 
   describe("Different Types of Responses", () {
     final post = new IntegrationPost()..id = 123..title = "new";
 
-    it("works when when a server returns an updated resource",
-      (HammockConfig config, MockHttpBackend hb, ObjectStore s) {
+    it("works when when a server returns an updated resource", () async {
 
         config.set({
             "posts" : {
@@ -47,22 +62,23 @@ testIntegration() {
             }
         });
 
-        hb.expectPUT("/posts/123").respond({"id" : 123, "title" : "updated"});
+        http.router.put("/posts/123", (_,__) => {"id" : 123, "title" : "updated"});
 
-        wait(s.update(post), (up) {
+
+        await objectStore.update(post).then((up) {
           expect(up.title).toEqual("updated");
         });
 
-        hb.expectPUT("/posts/123").respond(422, {"id" : 123, "title" : "updated", "errors" : "some errors"}, {});
+        http.clearRoutes();
+        http.router.put("/posts/123", (_,__) => json({"id" : 123, "title" : "updated", "errors" : "some errors"}, 422));
 
-        waitForError(s.update(post), (up, s) {
+        return objectStore.update(post).catchError((up) {
           expect(up.title).toEqual("updated");
           expect(up.errors).toEqual("some errors");
         });
     });
 
-    it("works when a server returns a status",
-      (HammockConfig config, MockHttpBackend hb, ObjectStore s) {
+    it("works when a server returns a status", () async {
 
         config.set({
             "posts" : {
@@ -78,15 +94,16 @@ testIntegration() {
         });
 
 
-        hb.expectPUT("/posts/123").respond("OK");
+        http.router.put("/posts/123", (_,__) => "OK");
 
-        wait(s.update(post), (res) {
+        await objectStore.update(post).then((res) {
           expect(res).toBeTrue();
         });
 
-        hb.expectPUT("/posts/123").respond(422, {"errors" : "some errors"}, {});
+        http.clearRoutes();
+        http.router.put("/posts/123", (_,__) => json({"errors" : "some errors"}, 422));
 
-        waitForError(s.update(post), (errors) {
+        return objectStore.update(post).catchError((errors) {
           expect(errors).toEqual("some errors");
         });
     });

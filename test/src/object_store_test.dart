@@ -2,10 +2,23 @@ part of hammock_test;
 
 testObjectStore() {
   describe("ObjectStore", () {
-    setUpAngular();
+    //setUpAngular();
+
+    ObjectStore store;
+    HammockConfig config;
+    MockClient http;
+    HttpDefaultHeaders defaultHeaders;
+
+    beforeEach(() {
+      http = new MockClient();
+      config = new HammockConfig(null);
+      defaultHeaders = new HttpDefaultHeaders();
+      var resourceStore = new ResourceStore(http.client, config, defaultHeaders);
+      store = new ObjectStore(resourceStore, config);
+    });
 
     describe("Queries", () {
-      beforeEach((HammockConfig config) {
+      beforeEach(() {
         config.set({
             "posts" : {
                 "type" : Post,
@@ -19,42 +32,41 @@ testObjectStore() {
         });
       });
 
-      it("returns an object", (MockHttpBackend hb, ObjectStore store) {
-        hb.whenGET("/posts/123").respond({"title" : "SampleTitle"});
+      it("returns an object", () {
+        http.router.get("/posts/123", (_,__) => {"title" : "SampleTitle"});
 
-        wait(store.one(Post, 123), (Post post) {
+        return store.one(Post, 123).then((Post post) {
           expect(post.title).toEqual("SampleTitle");
         });
       });
 
-      it("returns multiple objects", (MockHttpBackend hb, ObjectStore store) {
-        hb.whenGET("/posts").respond([{"title" : "SampleTitle"}]);
+      it("returns multiple objects", () {
+        http.router.get("/posts", (_,__) => [{"title" : "SampleTitle"}]);
 
-        wait(store.list(Post), (List<Post> posts) {
+        return store.list(Post).then((List<Post> posts) {
           expect(posts.length).toEqual(1);
           expect(posts[0].title).toEqual("SampleTitle");
         });
       });
 
-      it("returns a nested object", (MockHttpBackend hb, ObjectStore store) {
+      it("returns a nested object", () {
         final post = new Post()..id = 123;
-        hb.whenGET("/posts/123/comments/456").respond({"text" : "SampleComment"});
+        http.router.get("/posts/123/comments/456", (_,__) => {"text" : "SampleComment"});
 
-        wait(store.scope(post).one(Comment, 456), (Comment comment) {
+        return store.scope(post).one(Comment, 456).then((Comment comment) {
           expect(comment.text).toEqual("SampleComment");
         });
       });
 
-      it("handles errors", (MockHttpBackend hb, ObjectStore store) {
-        hb.whenGET("/posts/123").respond(500, "BOOM");
+      it("handles errors", () {
+        http.router.get("/posts/123", (_,__) => text('BOOM', 500));
 
-        waitForError(store.one(Post, 123), (resp) {
-          expect(resp.data).toEqual("BOOM");
+        return store.one(Post, 123).catchError((resp) {
+          expect(resp.body).toEqual("BOOM");
         });
       });
 
-      it("uses a separate deserializer for queries",
-          (HammockConfig config, MockHttpBackend hb, ObjectStore store) {
+      it("uses a separate deserializer for queries", () {
 
         config.set({
             "posts" : {
@@ -65,15 +77,14 @@ testObjectStore() {
             }
         });
 
-        hb.whenGET("/posts/123").respond({"title" : "SampleTitle"});
+        http.router.get("/posts/123", (_,__) => {"title" : "SampleTitle"});
 
-        wait(store.one(Post, 123), (Post post) {
+        return store.one(Post, 123).then((Post post) {
           expect(post.title).toEqual("SampleTitle");
         });
       });
 
-      it("supports deserializers that return Futures",
-          (HammockConfig config, MockHttpBackend hb, ObjectStore store) {
+      it("supports deserializers that return Futures", () async  {
 
         config.set({
             "posts" : {
@@ -82,31 +93,31 @@ testObjectStore() {
             }
         });
 
-        hb.whenGET("/posts/123").respond({"title" : "SampleTitle"});
+        http.router.get("/posts/123", (_,__) => {"title" : "SampleTitle"});
 
-        wait(store.one(Post, 123), (Post post) {
+        await store.one(Post, 123).then((Post post) {
           expect(post.title).toEqual("SampleTitle");
         });
 
-        hb.whenGET("/posts").respond([{"title" : "SampleTitle"}]);
+        http.router.get("/posts", (_,__) => [{"title" : "SampleTitle"}]);
 
-        wait(store.list(Post), (List posts) {
+        return store.list(Post).then((List posts) {
           expect(posts.first.title).toEqual("SampleTitle");
         });
       });
 
-      it("support custom queries returning one object", (MockHttpBackend hb, ObjectStore store) {
-        hb.whenGET("/posts/123").respond({"id": 123, "title" : "SampleTitle"});
+      it("support custom queries returning one object", () {
+        http.router.get("/posts/123", (_,__) => {"id": 123, "title" : "SampleTitle"});
 
-        wait(store.customQueryOne(Post, new CustomRequestParams(method: "GET", url:"/posts/123")), (Post post) {
+        return store.customQueryOne(Post, new CustomRequestParams(method: "GET", url:"/posts/123")).then((Post post) {
           expect(post.title).toEqual("SampleTitle");
         });
       });
 
-      it("support custom queries returning many object", (MockHttpBackend hb, ObjectStore store) {
-        hb.whenGET("/posts").respond([{"id": 123, "title" : "SampleTitle"}]);
+      it("support custom queries returning many object", () {
+        http.router.get("/posts", (_,__) => [{"id": 123, "title" : "SampleTitle"}]);
 
-        wait(store.customQueryList(Post, new CustomRequestParams(method: "GET", url: "/posts")), (List posts) {
+        return store.customQueryList(Post, new CustomRequestParams(method: "GET", url: "/posts")).then((List posts) {
           expect(posts.length).toEqual(1);
           expect(posts[0].title).toEqual("SampleTitle");
         });
@@ -116,7 +127,7 @@ testObjectStore() {
 
     describe("Commands", () {
       describe("Without Deserializers", () {
-        beforeEach((HammockConfig config) {
+        beforeEach(() {
           config.set({
               "posts" : {
                   "type" : Post,
@@ -129,53 +140,84 @@ testObjectStore() {
           });
         });
 
-        it("creates an object", (MockHttpBackend hb, ObjectStore store) {
-          hb.expectPOST("/posts", '{"id":null,"title":"New"}').respond({"id":123,"title":"New"});
+        it("creates an object", () {
+          var reqBody;
+          http.router.post("/posts", (Request r,__) {
+            reqBody = r.body;
+            return {"id":123,"title":"New"};
+          });
 
           final post = new Post()..title = "New";
 
-          wait(store.create(post));
+          return store.create(post).then((response) {
+            expect(reqBody).toEqual('{"id":null,"title":"New"}');
+            expect(response.content).toEqual({"id":123,"title":"New"});
+          });
         });
 
-        it("updates an object", (MockHttpBackend hb, ObjectStore store) {
-          hb.expectPUT("/posts/123", '{"id":123,"title":"New"}').respond({});
+        it("updates an object", () {
+          var reqBody;
+          http.router.put("/posts/123", (Request r,__) {
+            reqBody = r.body;
+            return {};
+          });
 
           final post = new Post()..id = 123..title = "New";
 
-          wait(store.update(post));
+
+          return store.update(post).then((response) {
+            expect(reqBody).toEqual('{"id":123,"title":"New"}');
+            expect(response.content).toEqual({});
+          });
         });
 
-        it("deletes a object", (MockHttpBackend hb, ObjectStore store) {
-          hb.expectDELETE("/posts/123").respond({});
+        it("deletes a object", () {
+          http.router.delete("/posts/123", (_,__) => {});
 
           final post = new Post()..id = 123;
 
-          wait(store.delete(post));
+          return store.delete(post).then((response) {
+            expect(response.content).toEqual({});
+          });
         });
 
-        it("updates a nested object", (MockHttpBackend hb, ObjectStore store) {
-          hb.expectPUT("/posts/123/comments/456", '{"id":456,"text":"New"}').respond({});
+        it("updates a nested object", () {
+          var reqBody;
+          http.router.put("/posts/123/comments/456", (Request r,__) {
+            reqBody = r.body;
+            return {};
+          });
 
           final post = new Post()..id = 123;
           final comment = new Comment()..id = 456..text = "New";
 
-          wait(store.scope(post).update(comment));
+          return store.scope(post).update(comment).then((response) {
+            expect(reqBody).toEqual('{"id":456,"text":"New"}');
+            expect(response.content).toEqual({});
+          });
         });
 
-        it("handles errors", (MockHttpBackend hb, ObjectStore store) {
-          hb.expectPOST("/posts", '{"id":null,"title":"New"}').respond(500, "BOOM", {});
+        it("handles errors", () {
+          var reqBody;
+          http.router.post("/posts", (Request r,__) {
+            reqBody = r.body;
+            return text('BOOM', 500);
+          });
 
           final post = new Post()..title = "New";
 
-          waitForError(store.create(post));
+          return store.create(post).catchError((error) {
+            expect(reqBody).toEqual('{"id":null,"title":"New"}');
+            expect(error.content).toEqual('BOOM');
+          });
         });
 
-        it("supports custom commands", (MockHttpBackend hb, ObjectStore store) {
-          hb.expectDELETE("/posts/123").respond("OK");
+        it("supports custom commands", () {
+          http.router.delete("/posts/123", (_,__) => 'OK');
 
           final post = new Post()..id = 123;
 
-          wait(store.customCommand(post, new CustomRequestParams(method: 'DELETE', url: '/posts/123')), (resp) {
+          return store.customCommand(post, new CustomRequestParams(method: 'DELETE', url: '/posts/123')).then((resp) {
             expect(resp.content).toEqual("OK");
           });
         });
@@ -188,8 +230,7 @@ testObjectStore() {
           post = new Post()..id = 123..title = "New";
         });
 
-        it("uses the same deserializer for queries and commands",
-            (MockHttpBackend hb, ObjectStore store, HammockConfig config) {
+        it("uses the same deserializer for queries and commands", () {
 
           config.set({
               "posts" : {
@@ -199,16 +240,15 @@ testObjectStore() {
               }
           });
 
-          hb.expectPUT("/posts/123").respond({"id": 123, "title": "Newer"});
+          http.router.put("/posts/123", (_,__) => {"id": 123, "title": "Newer"});
 
-          wait(store.update(post), (Post returnedPost) {
+          return store.update(post).then((Post returnedPost) {
             expect(returnedPost.id).toEqual(123);
             expect(returnedPost.title).toEqual("Newer");
           });
         });
 
-        it("uses a separate serializer for commands",
-            (MockHttpBackend hb, ObjectStore store, HammockConfig config) {
+        it("uses a separate serializer for commands", () {
 
           config.set({
               "posts" : {
@@ -220,16 +260,16 @@ testObjectStore() {
               }
           });
 
-          hb.expectPUT("/posts/123").respond({"title": "Newer"});
 
-          wait(store.update(post), (Post returnedPost) {
+          http.router.put("/posts/123", (_,__) => {"title": "Newer"});
+
+          return store.update(post).then((Post returnedPost) {
             expect(returnedPost.title).toEqual("Newer");
             expect(post.title).toEqual("Newer");
           });
         });
 
-        it("uses a separate serializer when a command fails",
-            (MockHttpBackend hb, ObjectStore store, HammockConfig config) {
+        it("uses a separate serializer when a command fails", () {
 
           config.set({
               "posts" : {
@@ -244,15 +284,14 @@ testObjectStore() {
               }
           });
 
-          hb.expectPUT("/posts/123").respond(500, "BOOM");
+          http.router.put("/posts/123", (_,__) => text('BOOM', 500));
 
-          waitForError(store.update(post), (resp) {
+          return store.update(post).catchError((resp) {
             expect(resp).toEqual("BOOM");
           });
         });
 
-        it("supports deserializers that return Futures",
-            (HammockConfig config, MockHttpBackend hb, ObjectStore store) {
+        it("supports deserializers that return Futures", () async {
 
           config.set({
               "posts" : {
@@ -267,15 +306,16 @@ testObjectStore() {
               }
           });
 
-          hb.expectPUT("/posts/123").respond({"title": "Newer"});
+          http.router.put("/posts/123", (_,__) => {"title": "Newer"});
 
-          wait(store.update(post), (Post returnedPost) {
+          await store.update(post).then((Post returnedPost) {
             expect(returnedPost.title).toEqual("Newer");
           });
 
-          hb.expectPUT("/posts/123").respond(500, 'BOOM');
+          http.clearRoutes();
+          http.router.put("/posts/123", (_,__) => text('BOOM', 500));
 
-          waitForError(store.update(post), (resp) {
+          return store.update(post).catchError((resp) {
             expect(resp).toEqual("BOOM");
           });
         });

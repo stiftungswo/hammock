@@ -12,6 +12,6 @@ dependencies:
   di: any
 dev_dependencies:
   guinness: '>=0.1.10 <0.2.0'
-  mock: '>0.11.0 <1.0.0'
+  angel_route: "^2.0.5"
 environment:
   sdk: ">=1.4.0 <2.0.0"

@@ -13,7 +13,8 @@ class ResourceStore {
   ResourceStore.copy(ResourceStore original)
       : this.scopingResources = new List.from(original.scopingResources),
         this.http = original.http,
-        this.config = original.config;
+        this.config = original.config,
+        this.defaultHeader = original.defaultHeader;
 
   ResourceStore scope(scopingResource) => new ResourceStore.copy(this)..scopingResources.add(scopingResource);
 
@@ -89,7 +90,7 @@ class ResourceStore {
   _parseCommandResponse(res) => (resp) => _docFormat.documentToCommandResponse(res, resp.body);
   _error(Function func) => (resp) => new Future.error(func(resp));
 
-  get _docFormat => config.documentFormat;
+  DocumentFormat get _docFormat => config.documentFormat;
 
   _url(type, [id=_u]) {
     final parentFragment = scopingResources.map((r) => "/${config.route(r.type)}/${r.id}").join("");
@@ -110,7 +111,7 @@ class ResourceStore {
     interceptors,
     cache,
     timeout
-  }) {
+  }) async  {
     Uri uri = Uri.parse(url);
 
     params = (params ?? {});
@@ -133,6 +134,13 @@ class ResourceStore {
       req.body = data;
     }
 
-    return http.send(req).then((stream) => Response.fromStream(stream));
+    var stream = await http.send(req);
+    var response = await Response.fromStream(stream);
+
+    if (stream.statusCode > 299) {
+      throw response;
+    } else {
+      return response;
+    }
   }
 }

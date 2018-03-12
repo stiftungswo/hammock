@@ -1,12 +1,10 @@
 library hammock_demo_app;
 
 import 'package:angular/angular.dart';
-import 'package:angular/application_factory.dart';
+import 'package:angular_forms/angular_forms.dart';
 import 'package:hammock/hammock.dart';
 import 'util/mirror_based_serializers.dart';
 import 'dart:async';
-
-
 
 //-----------------------
 //--------MODELS---------
@@ -32,15 +30,19 @@ class Post {
   get popular => views > 100;
 }
 
-
-
 //-----------------------
 //------COMPONENTS-------
 //-----------------------
-@Component(selector: 'post', templateUrl: 'partials/post.html', publishAs: 'ctrl')
+@Component(
+  selector: 'post',
+  templateUrl: 'partials/post.html',
+  directives: const [CORE_DIRECTIVES],
+)
 class PostComponent {
-  @NgOneWay("post") Post post;
-  @NgOneWay("site") Site site;
+  @Input("post")
+  Post post;
+  @Input("site")
+  Site site;
 
   ObjectStore store;
   PostComponent(this.store);
@@ -53,31 +55,36 @@ class PostComponent {
   get siteStore => store.scope(site);
 }
 
-@Component(selector: 'site', templateUrl: 'partials/site.html', publishAs: 'ctrl')
+@Component(
+  selector: 'site',
+  templateUrl: 'partials/site.html',
+  directives: const [PostComponent, CORE_DIRECTIVES, formDirectives],
+)
 class SiteComponent {
-  @NgOneWay("site") Site site;
+  @Input("site")
+  Site site;
 
   ObjectStore store;
   SiteComponent(this.store);
 
   void update() {
     // This is an example of handling success and error cases differently.
-    store.update(site).then(
-      (_) => print("success!"),
-      onError: (errors) => print("errors $errors")
-    );
+    store.update(site).then((_) => print("success!"), onError: (errors) => print("errors $errors"));
   }
 }
 
-@Component(selector: 'app', templateUrl: 'partials/app.html', publishAs: 'app')
+@Component(
+  selector: 'app',
+  templateUrl: 'partials/app.html',
+  directives: const [SiteComponent, CORE_DIRECTIVES],
+)
 class App {
   List<Site> sites;
 
   App(ObjectStore store) {
-    store.list(Site).then((sites) => this.sites = sites);
+    store.list(Site).then((sites) => this.sites = (sites as List<Site>));
   }
 }
-
 
 //-----------------------
 //------SERIALIZERS------
@@ -103,51 +110,43 @@ class DeserializeSite {
     // Since a Deserializer can return a future,
     // you can load all the associations right here.
     return store.scope(site).list(Post).then((posts) {
-      site.posts = posts;
+      site.posts = (posts as List<Post>);
       return site;
     });
   }
 }
 
-
-
 createHammockConfig(Injector inj) {
   return new HammockConfig(inj)
     ..set({
-        "posts" : {
-            "type" : Post,
-            "serializer" : serializePost,
-            "deserializer": {"query" : deserializePost}
-        },
-
-        "sites" : {
-            "type" : Site,
-            "serializer" : serializeSite,
-            "deserializer": {
-                "query" : DeserializeSite, //When given a type, Hammock will use the Injector to get an instance of it.
-                "command" : {
-                  "success" : null,
-                  "error" : parseErrors
-                }
-            }
+      "posts": {
+        "type": Post,
+        "serializer": serializePost,
+        "deserializer": {"query": deserializePost}
+      },
+      "sites": {
+        "type": Site,
+        "serializer": serializeSite,
+        "deserializer": {
+          "query": DeserializeSite, //When given a type, Hammock will use the Injector to get an instance of it.
+          "command": {"success": null, "error": parseErrors}
         }
+      }
     })
-    ..urlRewriter.baseUrl = '/api';
+    ..urlRewriter.baseUrl = 'http://127.0.0.1:3001/api';
 }
-
-
 
 //-----------------------
 //---------MAIN----------
 //-----------------------
-main () {
-  final module = new Module()
-    ..install(new Hammock())
-    ..bind(App)
-    ..bind(SiteComponent)
-    ..bind(PostComponent)
-    ..bind(DeserializeSite)
-    ..bind(HammockConfig, toFactory: createHammockConfig);
+main() {
+  List<dynamic> customProviders = [
+    Hammock.getProviders(),
+    provide(HammockConfig, useFactory: createHammockConfig, deps: const [Injector]),
+    provide(SiteComponent),
+    provide(PostComponent),
+    provide(DeserializeSite),
+  ];
 
-  applicationFactory().addModule(module).run();
+  bootstrap(App, customProviders);
 }

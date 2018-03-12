@@ -65,6 +65,16 @@ handleRequest(HttpRequest request) {
   }
 
 
+  request.response.headers.set("Access-Control-Allow-Origin", 'http://127.0.0.1:7001');
+  request.response.headers.set("Access-Control-Allow-Credentials", 'true');
+
+  if (request.method == "OPTIONS") {
+    request.response.statusCode = 200;
+    request.response.headers.set('Access-Control-Allow-Headers', request.headers['Access-Control-Request-Headers']);
+    request.response.headers.set('Access-Control-Allow-Methods', request.headers['Access-Control-Request-Method']);
+    request.response.close();
+    return;
+  }
 
   if ('/api/sites' == p) {
     handleSitesGet();

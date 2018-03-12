@@ -1,7 +1,7 @@
 <li style="margin: 10px;">
-  {{ctrl.post.title}}
+  {{post.title}}
 
-  (Views: {{ctrl.post.views}})
+  (Views: {{post.views}})
 
-  <button ng-click="ctrl.delete()">Delete</button>
+  <button (click)="delete()">Delete</button>
 </li>

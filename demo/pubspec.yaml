@@ -2,9 +2,19 @@ name: hammock_demo_app
 author: Victor Savkin <vic.savkin@gmail.com>
 homepage: https://github.com/vsavkin/hammock
 dependencies:
-  angular: '>=0.12.0 <1.0.0'
+  angular: "^4.0.0+2"
+  angular_forms: ^1.0.0
+  browser: any
   http_server: any
   hammock:
     path: '../'
+dev_dependencies:
+  dart_to_js_script_rewriter: ^1.0.1
 environment:
   sdk: ">=1.4.0 <2.0.0"
+
+transformers:
+- angular:
+    entry_points:
+    - web/app.dart
+- dart_to_js_script_rewriter

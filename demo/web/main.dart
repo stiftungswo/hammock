@@ -4,7 +4,8 @@ import 'package:angular/angular.dart';
 import 'package:angular_forms/angular_forms.dart';
 import 'package:hammock/hammock.dart';
 import 'util/mirror_based_serializers.dart';
-import 'dart:async';
+// ignore: uri_has_not_been_generated
+import 'main.template.dart' as ng;
 
 //-----------------------
 //--------MODELS---------
@@ -52,7 +53,7 @@ class PostComponent {
     siteStore.delete(post).then((_) => site.remove(post));
   }
 
-  get siteStore => store.scope(site);
+  ObjectStore get siteStore => store.scope(site);
 }
 
 @Component(
@@ -82,7 +83,7 @@ class App {
   List<Site> sites;
 
   App(ObjectStore store) {
-    store.list(Site).then((sites) => this.sites = (sites as List<Site>));
+    store.listT<Site>().then((sites) => this.sites = sites);
   }
 }
 
@@ -109,8 +110,8 @@ class DeserializeSite {
 
     // Since a Deserializer can return a future,
     // you can load all the associations right here.
-    return store.scope(site).list(Post).then((posts) {
-      site.posts = (posts as List<Post>);
+    return store.scope(site).listT<Post>().then((posts) {
+      site.posts = posts;
       return site;
     });
   }
@@ -148,5 +149,5 @@ main() {
     provide(DeserializeSite),
   ];
 
-  bootstrap(App, customProviders);
+  bootstrapStatic(App, customProviders, ng.initReflector);
 }

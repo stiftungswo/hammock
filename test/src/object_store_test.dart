@@ -343,7 +343,7 @@ Post updatePost(Post post, CommandResponse resp) {
   return post;
 }
 
-parseErrors(Post post, CommandResponse resp) =>
+parseErrors(/*Post */post, CommandResponse resp) =>
     resp.content;
 
 Resource serializePost(Post post) =>

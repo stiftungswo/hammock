@@ -1,19 +1,22 @@
 library hammock;
 
-import 'package:angular/angular.dart';
 import 'dart:async';
+
+import 'package:angular/di.dart';
 import 'package:http/browser_client.dart';
 import 'package:http/http.dart';
+
 import 'hammock_core.dart';
+
 export 'hammock_core.dart';
 
-part 'src/resource_store.dart';
 part 'src/config.dart';
-part 'src/request_defaults.dart';
 part 'src/custom_request_params.dart';
-part 'src/object_store.dart';
-part 'src/utils.dart';
 part 'src/default_header.dart';
+part 'src/object_store.dart';
+part 'src/request_defaults.dart';
+part 'src/resource_store.dart';
+part 'src/utils.dart';
 
 const hammockProviders = const [
   const Provider(HttpDefaultHeaders, useFactory: getHttpDefaultHeaders, deps: const []),

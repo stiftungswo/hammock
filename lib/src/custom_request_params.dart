@@ -27,7 +27,7 @@ class CustomRequestParams {
     this.timeout
   });
 
-  Future invoke(http) =>
+  Future<Response> invoke(http) =>
       http(method: method, url: url, data: data, params: params, headers: headers,
         withCredentials: withCredentials, xsrfHeaderName: xsrfHeaderName,
         xsrfCookieName: xsrfCookieName, interceptors: interceptors, cache: cache,

@@ -13,7 +13,7 @@ _wrappedIntoErrorFuture(res) {
   }
 }
 
-_wrappedListIntoFuture(List list) {
+FutureOr<List> _wrappedListIntoFuture(List list) {
   if (list.any((v) => v is Future)) {
     final wrappedInFutures = list.map((v) => v is Future ? v : new Future.value(v));
     return Future.wait(wrappedInFutures);

@@ -1,5 +1,5 @@
 name: hammock
-version: 0.6.0
+version: 0.7.0-alpha
 authors:
 - Victor Savkin <vic.savkin@gmail.com>
 - Till Wegmüller <toasterson@gmail.com>
@@ -7,11 +7,10 @@ authors:
 homepage: https://github.com/Toasterson/hammock
 description: AngularDart service for working with Rest APIs
 dependencies:
-  angular: '^4.0.0'
+  angular: '^5.0.0-alpha+12'
   http: "^0.11.3+16"
-  di: any
 dev_dependencies:
-  test: "^0.12.32+1"
+  test: "^0.12.38+1"
   angel_route: "^2.0.5"
 environment:
   sdk: ">=1.4.0 <2.0.0"

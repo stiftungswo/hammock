@@ -24,7 +24,7 @@ class ResourceStore {
     return _invoke("GET", url).then(_parseResource(resourceType));
   }
 
-  Future<QueryResult<Resource>> list(String resourceType, {Map params}) {
+  Future<QueryResult<Resource>> list(String resourceType, {Map<String, dynamic> params}) {
     final url = _url(resourceType);
     return _invoke("GET", url, params: params).then(_parseManyResources((resourceType)));
   }
@@ -36,32 +36,52 @@ class ResourceStore {
       params.invoke(callHttp).then(_parseManyResources(resourceType));
 
 
-  Future<CommandResponse> create(Resource resource) {
+  Future<CommandResponse> create(Resource resource) async {
     final content = _docFormat.resourceToDocument(resource);
     final url = _url(resource.type);
     final p = _parseCommandResponse(resource);
-    return _invoke("POST", url, data: content).then(p, onError: _error(p));
+    try {
+      Response stuff = await _invoke("POST", url, data: content);
+      return p(stuff);
+    } catch (e) {
+      throw p(e);
+    }
   }
 
-  Future<CommandResponse> update(Resource resource) {
+  Future<CommandResponse> update(Resource resource) async {
     final content = _docFormat.resourceToDocument(resource);
     final url = _url(resource.type, resource.id);
     final p = _parseCommandResponse(resource);
-    return _invoke("PUT", url, data: content).then(p, onError: _error(p));
+    try {
+      Response stuff = await _invoke("PUT", url, data: content);
+      return p(stuff);
+    } catch (e) {
+      throw p(e);
+    }
   }
 
-  Future<CommandResponse> delete(Resource resource) {
+  Future<CommandResponse> delete(Resource resource) async {
     final url = _url(resource.type, resource.id);
     final p = _parseCommandResponse(resource);
-    return _invoke("DELETE", url).then(p, onError: _error(p));
+    try {
+      Response stuff = await _invoke("DELETE", url);
+      return p(stuff);
+    } catch (e) {
+      throw p(e);
+    }
   }
 
-  Future<CommandResponse> customCommand(Resource resource, CustomRequestParams params) {
+  Future<CommandResponse> customCommand(Resource resource, CustomRequestParams params) async {
     final p = _parseCommandResponse(resource);
-    return params.invoke(this.callHttp).then(p, onError: _error(p));
+    try {
+      Response stuff = await params.invoke(this.callHttp);
+      return p(stuff);
+    } catch (e) {
+      throw p(e);
+    }
   }
 
-  Future<Response> _invoke(String method, String url, {String data, Map params}) {
+  Future<Response> _invoke(String method, String url, {String data, Map<String, dynamic> params}) {
     final d = config.requestDefaults;
     return callHttp(
         method: method,
@@ -78,9 +98,9 @@ class ResourceStore {
     );
   }
 
-  Map _paramsWithDefaults(Map rParams) {
+  Map<String, dynamic> _paramsWithDefaults(Map<String, dynamic> rParams) {
     if (config.requestDefaults.params == null && rParams == null) return null;
-    final params = config.requestDefaults.params == null ? {} : config.requestDefaults.params;
+    final Map<String, dynamic> params = config.requestDefaults.params == null ? {} : config.requestDefaults.params;
     if (rParams != null) rParams.forEach((key, value) => params[key] = value);
     return params;
   }
@@ -88,7 +108,7 @@ class ResourceStore {
   _parseResource(String resourceType) => (Response resp) => _docFormat.documentToResource(resourceType, resp.body);
   _parseManyResources(String resourceType) => (Response resp) => _docFormat.documentToManyResources(resourceType, resp.body);
   _parseCommandResponse(Resource res) => (Response resp) => _docFormat.documentToCommandResponse(res, resp.body);
-  _error(dynamic func(Response)) => (Response resp) => new Future.error(func(resp));
+  _error(dynamic func(dynamic)) => (dynamic resp) => new Future.error(func(resp));
 
   DocumentFormat get _docFormat => config.documentFormat;
 

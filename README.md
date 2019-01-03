@@ -1,5 +1,7 @@
 # Hammock
 
+:exclamation: Attention: This project is not maintained anymore. We don't recommend to use the package anymore, as the package itself is only partially tested with Dart 2.
+
 AngularDart service for working with Rest APIs
 
 [![Build Status](https://travis-ci.org/vsavkin/hammock.svg?branch=master)](https://travis-ci.org/vsavkin/hammock)
